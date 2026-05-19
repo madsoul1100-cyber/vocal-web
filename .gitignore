@@ -5,10 +5,10 @@ package-lock.json
 # Build output
 dist/
 
-# Environment
-.env
-.env.*
-!.env.example
+# # Environment
+# .env
+# .env.*
+# !.env.example
 
 # Logs
 *.log
@@ -21,7 +21,7 @@ npm-debug.log*
 !.vscode/extensions.json
 
 # Vite
-*.local
+# *.local
 
 # TypeScript
 *.tsbuildinfo
