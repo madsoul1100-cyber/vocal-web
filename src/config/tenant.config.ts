@@ -77,6 +77,13 @@ export interface TenantConfig {
     }
   }
 
+  whatsapp: {
+    enabled: boolean
+    waMeNumber: string
+    displayNumber: string
+    prefillMessage: string
+  }
+
   /** Geographic root and hierarchy labels for the territory tree. */
   geography: {
     /** Country (e.g. "India"). For reference only. */
@@ -171,6 +178,13 @@ export const TENANT_CONFIG: TenantConfig = {
     },
   },
 
+  whatsapp: {
+    enabled: true,
+    waMeNumber: '18782832662',
+    displayNumber: '+1 (878) 283-2662',
+    prefillMessage: 'Hi',
+  },
+
   geography: {
     country: 'India',
     rootName: 'Telangana',
@@ -231,6 +245,7 @@ export const tenantApp        = TENANT_CONFIG.app
 export const tenantParty      = TENANT_CONFIG.party
 export const tenantBrand      = TENANT_CONFIG.brand
 export const tenantBots       = TENANT_CONFIG.bots
+export const tenantWhatsApp   = TENANT_CONFIG.whatsapp
 export const tenantGeography  = TENANT_CONFIG.geography
 export const tenantLanguage   = TENANT_CONFIG.language
 export const tenantCivicScope = TENANT_CONFIG.civicScope
