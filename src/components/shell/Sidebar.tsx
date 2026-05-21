@@ -1,4 +1,3 @@
-import { UserButton } from '@clerk/clerk-react'
 import { Link, useLocation } from 'react-router-dom'
 import { tenantApp } from '@/config/tenant.config'
 import type { RoleName } from '@/types/database'
@@ -277,8 +276,7 @@ export function Sidebar({ userRole, orgName, userName, collapsed = false, onNavi
         className={`py-3 flex items-center ${collapsed ? 'justify-center px-2' : 'gap-2.5 px-3'}`}
         style={{ borderTop: '1px solid var(--shell-border)' }}
       >
-        <UserButton afterSignOutUrl="/sign-in" />
-        {!collapsed && (
+        {!collapsed ? (
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-medium truncate" style={{ color: 'var(--shell-text)' }}>
               {userName}
@@ -287,6 +285,24 @@ export function Sidebar({ userRole, orgName, userName, collapsed = false, onNavi
               {userRole.replace(/_/g, ' ')}
             </div>
           </div>
+        ) : (
+          <span
+            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
+            style={{ background: 'var(--brand-600)', color: '#fff' }}
+            title={userName}
+          >
+            {userName.charAt(0).toUpperCase()}
+          </span>
+        )}
+        {onSignOut && !collapsed && (
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="text-[11px] shrink-0 px-2 py-1 rounded"
+            style={{ color: 'var(--shell-muted)', border: '1px solid var(--shell-border)' }}
+          >
+            Sign out
+          </button>
         )}
       </div>
     </aside>

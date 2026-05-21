@@ -1,14 +1,43 @@
-import { SignIn, useAuth as useClerkAuth } from '@clerk/clerk-react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { FormEvent, useState, type CSSProperties } from 'react'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
+import { ApiError } from '@/api/client'
 import { tenantApp } from '@/config/tenant.config'
 
-export function SignInPage() {
-  const { isSignedIn } = useClerkAuth()
-  const location = useLocation()
-  const onFactorStep = location.pathname.includes('/factor')
+const inputStyle: CSSProperties = {
+  borderColor: 'var(--canvas-border)',
+  background: 'var(--canvas-surface)',
+  color: 'var(--canvas-text)',
+}
 
-  if (isSignedIn) {
+export function SignInPage() {
+  const { isAuthenticated, login, isLoading } = useAuth()
+  const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  if (!isLoading && isAuthenticated) {
     return <Navigate to="/dashboard" replace />
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setSubmitting(true)
+    try {
+      await login(email, password)
+      navigate('/dashboard', { replace: true })
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+      } else {
+        setError('Sign in failed. Check your email and password.')
+      }
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -37,34 +66,66 @@ export function SignInPage() {
           </div>
         </div>
 
-        {onFactorStep && (
-          <div
-            className="w-full text-xs px-3 py-2 rounded-md"
-            style={{
-              background: 'var(--alert-warning-bg)',
-              color: 'var(--alert-warning-text)',
-              borderLeft: '3px solid var(--alert-warning-border)',
-            }}
-          >
-            <strong>Second step required.</strong> Check your email for a 6-digit code, or complete
-            MFA if prompted. Accounts created by an admin should sign in with email + password only
-            — ask support to run &quot;repair Clerk&quot; if you stay stuck here.
-          </div>
-        )}
+        <form
+          onSubmit={handleSubmit}
+          className="w-full card p-5 flex flex-col gap-4"
+          style={{ background: 'var(--canvas-surface)' }}
+        >
+          {error && (
+            <div
+              className="text-xs px-3 py-2 rounded-md"
+              style={{
+                background: 'var(--alert-error-bg)',
+                color: 'var(--alert-error-text)',
+                borderLeft: '3px solid var(--alert-error-border)',
+              }}
+            >
+              {error}
+            </div>
+          )}
 
-        <SignIn
-          routing="path"
-          path="/sign-in"
-          signUpUrl="/sign-up"
-          forceRedirectUrl="/dashboard"
-          fallbackRedirectUrl="/dashboard"
-        />
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium" style={{ color: 'var(--canvas-muted)' }}>
+              Email
+            </span>
+            <input
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full text-sm px-3 py-2 rounded-md border outline-none focus:ring-2"
+              style={inputStyle}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium" style={{ color: 'var(--canvas-muted)' }}>
+              Password
+            </span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full text-sm px-3 py-2 rounded-md border outline-none focus:ring-2"
+              style={inputStyle}
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full text-sm font-medium px-3 py-2.5 rounded-md text-white disabled:opacity-60"
+            style={{ background: 'var(--primary)' }}
+          >
+            {submitting ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
 
         <p className="text-xs text-center" style={{ color: 'var(--canvas-muted)' }}>
-          New organization?{' '}
-          <Link to="/sign-up" className="font-medium hover:underline" style={{ color: 'var(--primary)' }}>
-            Create an account
-          </Link>
+          Staff accounts are created by your organization admin.
         </p>
         <Link to="/" className="text-xs" style={{ color: 'var(--canvas-muted)' }}>
           ← Back to home

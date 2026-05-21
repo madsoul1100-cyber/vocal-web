@@ -1,11 +1,11 @@
-import { SignUp, useAuth as useClerkAuth } from '@clerk/clerk-react'
 import { Link, Navigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
 import { tenantApp } from '@/config/tenant.config'
 
 export function SignUpPage() {
-  const { isSignedIn } = useClerkAuth()
+  const { isAuthenticated, isLoading } = useAuth()
 
-  if (isSignedIn) {
+  if (!isLoading && isAuthenticated) {
     return <Navigate to="/dashboard" replace />
   }
 
@@ -14,39 +14,24 @@ export function SignUpPage() {
       className="min-h-screen flex items-center justify-center px-4 py-10"
       style={{ background: 'var(--canvas-bg)' }}
     >
-      <div className="w-full max-w-sm flex flex-col items-center gap-8">
-        <SignUpBrand />
-        <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" forceRedirectUrl="/dashboard" />
-        <p className="text-xs text-center" style={{ color: 'var(--canvas-muted)' }}>
-          Already have an account?{' '}
-          <Link to="/sign-in" className="font-medium hover:underline" style={{ color: 'var(--primary)' }}>
-            Sign in
-          </Link>
-        </p>
-      </div>
-    </div>
-  )
-}
-
-function SignUpBrand() {
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div
-        className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white text-lg"
-        style={{
-          background: 'linear-gradient(135deg, var(--brand-500) 0%, var(--brand-700) 100%)',
-          boxShadow: 'var(--shadow-md)',
-        }}
-      >
-        {tenantApp.shortName}
-      </div>
-      <div className="text-center">
-        <h1 className="text-xl font-semibold" style={{ color: 'var(--canvas-text)' }}>
-          Create your {tenantApp.name} account
+      <div className="w-full max-w-sm card p-6 text-center flex flex-col gap-4">
+        <h1 className="text-lg font-semibold" style={{ color: 'var(--canvas-text)' }}>
+          Join {tenantApp.name}
         </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--canvas-muted)' }}>
-          Start managing civic issues in minutes
+        <p className="text-sm" style={{ color: 'var(--canvas-muted)' }}>
+          New staff accounts are created by your organization administrator. If you already have
+          credentials, sign in below.
         </p>
+        <Link
+          to="/sign-in"
+          className="text-sm font-medium px-4 py-2.5 rounded-md text-white inline-block"
+          style={{ background: 'var(--primary)' }}
+        >
+          Go to sign in
+        </Link>
+        <Link to="/" className="text-xs" style={{ color: 'var(--canvas-muted)' }}>
+          ← Back to home
+        </Link>
       </div>
     </div>
   )

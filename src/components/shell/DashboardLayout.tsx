@@ -46,9 +46,8 @@ function PendingView({ logout, navigate }: { logout: () => void; navigate: Retur
           Account Pending Activation
         </h2>
         <p className="text-sm mb-4" style={{ color: 'var(--canvas-muted)' }}>
-          You signed in with Clerk, but there is no matching active row in the staff database
-          (check <code className="text-[11px]">users.clerk_user_id</code>). Ask an admin to add you
-          via Workers, or link your Clerk user id to your profile.
+          Your account is not active or has no role assigned. Ask an administrator to activate your
+          staff profile via Workers.
         </p>
         <button
           type="button"

@@ -1,10 +1,10 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { useAuth as useClerkAuth } from '@clerk/clerk-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function ProtectedRoute() {
-  const { isLoaded, isSignedIn } = useClerkAuth()
+  const { isLoading, isAuthenticated } = useAuth()
 
-  if (!isLoaded) {
+  if (isLoading) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
@@ -15,7 +15,7 @@ export function ProtectedRoute() {
     )
   }
 
-  if (!isSignedIn) {
+  if (!isAuthenticated) {
     return <Navigate to="/sign-in" replace />
   }
 

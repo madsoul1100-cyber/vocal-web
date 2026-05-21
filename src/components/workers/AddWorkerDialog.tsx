@@ -102,7 +102,7 @@ export function AddWorkerDialog({ territories, roles, organizationName, onSaved 
           </div>
 
           <p className="text-xs" style={{ color: 'var(--canvas-muted)' }}>
-            Creates a <strong>Clerk</strong> login (email + password) and a matching{' '}
+            Creates a staff login (email + password) and a matching{' '}
             <strong>users</strong> row. They can sign in at /sign-in with those credentials.
           </p>
 
@@ -128,7 +128,7 @@ export function AddWorkerDialog({ territories, roles, organizationName, onSaved 
             />
           </Field>
 
-          <Field label="Sign-in email" required hint="Used for Clerk and /sign-in">
+          <Field label="Sign-in email" required hint="Used for sign-in at /sign-in">
             <input
               name="email"
               type="email"
@@ -141,7 +141,7 @@ export function AddWorkerDialog({ territories, roles, organizationName, onSaved 
             />
           </Field>
 
-          <Field label="Password" required hint="Min 8 characters — for Clerk sign-in">
+          <Field label="Password" required hint="Min 8 characters — for staff sign-in">
             <input
               name="password"
               type="password"
