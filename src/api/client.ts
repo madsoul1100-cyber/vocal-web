@@ -81,6 +81,19 @@ export async function apiPost<T>(
   })
 }
 
+/** POST multipart/form-data (e.g. worker create with file uploads). */
+export async function apiPostForm<T>(
+  path: string,
+  form: FormData,
+  getToken: () => Promise<string | null>,
+): Promise<T> {
+  return apiFetch<T>(path, {
+    method: 'POST',
+    body: form,
+    getToken,
+  })
+}
+
 export async function apiPatch<T>(
   path: string,
   body: unknown,
