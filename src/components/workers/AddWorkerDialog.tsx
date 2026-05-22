@@ -204,8 +204,9 @@ export function AddWorkerDialog({
           <p className="text-xs" style={{ color: 'var(--canvas-muted)' }}>
             {canApproveStaff ? (
               <>
-                Creates staff with sign-in credentials. Profile photo and KYC files are stored in
-                S3 (or org storage). Roles must be below your level
+                Creates staff with email + phone for OTP sign-in (no admin password). They set
+                their password on first login. Profile photo and KYC go to S3 (or org storage).
+                Roles must be below your level
                 {actorRoleDisplayName ? ` (${actorRoleDisplayName})` : ''}.
               </>
             ) : (
@@ -252,23 +253,16 @@ export function AddWorkerDialog({
             />
           </Field>
 
-          <Field label="Password" required hint="Min 8 characters — for staff sign-in">
-            <input
-              name="password"
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              className="w-full text-sm px-3 py-2 rounded-md border outline-none focus:ring-2"
-              style={inputStyle}
-            />
-          </Field>
-
-          <Field label="Phone">
+          <Field
+            label="Mobile number"
+            required
+            hint="Required for OTP sign-in — must match what the worker uses at /sign-in"
+          >
             <input
               name="phone"
               type="tel"
               inputMode="tel"
+              required
               maxLength={40}
               placeholder="+91 …"
               className="w-full text-sm px-3 py-2 rounded-md border outline-none focus:ring-2"
