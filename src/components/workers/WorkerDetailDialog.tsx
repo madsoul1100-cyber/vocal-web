@@ -145,10 +145,13 @@ export function WorkerDetailDialog({ worker, open, onClose, onEdit }: Props) {
 
   const roleLabel =
     display?.roles?.display_name ?? display?.roles?.name?.replace(/_/g, ' ') ?? '—'
-  const primaryTerritory =
-    display?.territories?.find((t) => t.is_primary)?.name ??
-    display?.territories?.[0]?.name ??
-    null
+  const territoriesLabel =
+    display?.territories && display.territories.length > 0
+      ? [...display.territories]
+          .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
+          .map((t) => (t.is_primary ? `${t.name} (primary)` : t.name))
+          .join(', ')
+      : null
 
   return (
     <ModalPortal open={open} onClose={onClose} titleId="worker-detail-title">
@@ -202,7 +205,7 @@ export function WorkerDetailDialog({ worker, open, onClose, onEdit }: Props) {
             <DetailRow label="Role" value={<span className="capitalize">{roleLabel}</span>} />
             <DetailRow label="Email" value={display.email} />
             <DetailRow label="Phone" value={display.phone} />
-            <DetailRow label="Territory" value={primaryTerritory} />
+            <DetailRow label="Territories" value={territoriesLabel} />
             <DetailRow
               label="Last sign-in"
               value={

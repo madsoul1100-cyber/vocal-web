@@ -275,6 +275,7 @@ export function WorkersPage() {
             canApproveStaff={canApprove}
             actorRoleDisplayName={user.role_display_name}
             onSaved={refresh}
+            onTerritoryCreated={refresh}
           />
         }
       />
@@ -458,6 +459,7 @@ export function WorkersPage() {
           actorRoleDisplayName={user.role_display_name}
           canApproveStaff={canApprove}
           onSaved={refresh}
+          onTerritoryCreated={refresh}
         />
       )}
     </div>

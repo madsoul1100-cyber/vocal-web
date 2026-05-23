@@ -7,6 +7,7 @@ import {
   useStaffMediaUrl,
   workerProfileMediaPath,
 } from '@/hooks/useStaffMediaUrl'
+import { TerritoryMultiSelect } from '@/components/workers/TerritoryMultiSelect'
 import type { RoleOption, StaffStatus, TerritoryOption, WorkerDetail, WorkerRow } from '@/types/workers'
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
   actorRoleDisplayName?: string | null
   canApproveStaff?: boolean
   onSaved?: () => void
+  onTerritoryCreated?: () => void
 }
 
 const MAX_KYC_FILES = 10
@@ -33,9 +35,12 @@ export function EditWorkerDialog({
   actorRoleDisplayName,
   canApproveStaff = false,
   onSaved,
+  onTerritoryCreated,
 }: Props) {
   const { getAccessToken } = useAuth()
   const [error, setError] = useState<string | null>(null)
+  const [selectedTerritoryIds, setSelectedTerritoryIds] = useState<string[]>([])
+  const [primaryTerritoryId, setPrimaryTerritoryId] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [profileFile, setProfileFile] = useState<File | null>(null)
   const [profilePreview, setProfilePreview] = useState<string | null>(null)
@@ -68,8 +73,19 @@ export function EditWorkerDialog({
       setProfilePreview(null)
       setRemoveProfile(false)
       setKycFiles([])
+      setSelectedTerritoryIds([])
+      setPrimaryTerritoryId(null)
     }
   }, [open])
+
+  useEffect(() => {
+    if (!formWorker?.territories) return
+    const ids = formWorker.territories.map((t) => t.id)
+    const primary =
+      formWorker.territories.find((t) => t.is_primary)?.id ?? formWorker.territories[0]?.id ?? null
+    setSelectedTerritoryIds(ids)
+    setPrimaryTerritoryId(primary)
+  }, [formWorker?.id, formWorker?.territories])
 
   useEffect(() => {
     if (!profileFile) {
@@ -136,8 +152,10 @@ export function EditWorkerDialog({
     const notes = String(form.get('notes') ?? '').trim()
     form.set('notes', notes)
 
-    const territoryId = String(form.get('territory_id') ?? '').trim()
-    form.set('territory_id', territoryId)
+    form.set('territory_ids', JSON.stringify(selectedTerritoryIds))
+    if (primaryTerritoryId) {
+      form.set('primary_territory_id', primaryTerritoryId)
+    }
 
     if (removeProfile) form.set('remove_profile_image', 'true')
 
@@ -167,11 +185,6 @@ export function EditWorkerDialog({
     borderColor: 'var(--canvas-border)',
     color: 'var(--canvas-text)',
   } as const
-
-  const primaryTerritoryId =
-    formWorker?.territories?.find((t) => t.is_primary)?.id ??
-    formWorker?.territories?.[0]?.id ??
-    ''
 
   const existingKyc = formWorker?.kyc_documents ?? []
   const kycSlotsLeft = MAX_KYC_FILES - existingKyc.length - kycFiles.length
@@ -296,23 +309,22 @@ export function EditWorkerDialog({
             </select>
           </Field>
 
-          {territories.length > 0 && (
-            <Field label="Primary territory" hint="Optional">
-              <select
-                name="territory_id"
-                defaultValue={primaryTerritoryId}
-                className="w-full text-sm px-3 py-2 rounded-md border outline-none focus:ring-2"
-                style={inputStyle}
-              >
-                <option value="">— None —</option>
-                {territories.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          )}
+          <Field
+            label="Territories"
+            hint="Optional — select one or more; mark one as primary"
+          >
+            <TerritoryMultiSelect
+              territories={territories}
+              selectedIds={selectedTerritoryIds}
+              primaryId={primaryTerritoryId}
+              onChange={(ids, primary) => {
+                setSelectedTerritoryIds(ids)
+                setPrimaryTerritoryId(primary)
+              }}
+              getAccessToken={getAccessToken}
+              onTerritoryCreated={onTerritoryCreated}
+            />
+          </Field>
 
           <Field label="Notes" hint="Optional">
             <textarea
