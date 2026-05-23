@@ -7,6 +7,15 @@ export interface StaffCategoryCounts {
   total: number
 }
 
+export interface StaffKycDocument {
+  storage_path: string
+  file_name: string
+  mime_type: string
+  size_bytes: number
+  uploaded_at: string
+  download_url?: string | null
+}
+
 export interface WorkerRow {
   id: string
   full_name: string
@@ -18,6 +27,15 @@ export interface WorkerRow {
   last_login_at: string | null
   created_at: string
   roles: { name: string; display_name: string | null } | null
+}
+
+export interface WorkerDetail extends WorkerRow {
+  role_id: string
+  notes: string | null
+  image_url: string | null
+  profile_image_url?: string | null
+  kyc_documents: StaffKycDocument[]
+  territories: { id: string; name: string; is_primary: boolean }[]
 }
 
 export interface PendingActivationRow {

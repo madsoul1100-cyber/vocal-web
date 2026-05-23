@@ -106,6 +106,19 @@ export async function apiPatch<T>(
   })
 }
 
+/** PATCH multipart/form-data (e.g. worker update with file uploads). */
+export async function apiPatchForm<T>(
+  path: string,
+  form: FormData,
+  getToken: () => Promise<string | null>,
+): Promise<T> {
+  return apiFetch<T>(path, {
+    method: 'PATCH',
+    body: form,
+    getToken,
+  })
+}
+
 export async function apiDelete<T>(
   path: string,
   getToken: () => Promise<string | null>,
