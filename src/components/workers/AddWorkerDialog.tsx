@@ -66,14 +66,22 @@ export function AddWorkerDialog({
   }, [profileFile])
 
   const handleProfilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const files = Array.from(e.target.files ?? [])
+    if (files.length > 1) {
+      setError('Choose only one profile photo')
+      e.target.value = ''
+      return
+    }
+    const file = files[0]
     if (!file) return
     if (!file.type.startsWith('image/')) {
       setError('Profile photo must be an image')
+      e.target.value = ''
       return
     }
     if (file.size > 5 * 1024 * 1024) {
       setError('Profile photo must be under 5 MB')
+      e.target.value = ''
       return
     }
     setError(null)
@@ -83,17 +91,19 @@ export function AddWorkerDialog({
   const handleKycPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files ?? [])
     if (picked.length === 0) return
-    const combined = [...kycFiles, ...picked].slice(0, MAX_KYC_FILES)
-    if (combined.length > MAX_KYC_FILES) {
+    if (kycFiles.length + picked.length > MAX_KYC_FILES) {
       setError(`At most ${MAX_KYC_FILES} KYC documents`)
+      e.target.value = ''
       return
     }
     for (const f of picked) {
       if (f.size > 10 * 1024 * 1024) {
         setError('Each KYC document must be under 10 MB')
+        e.target.value = ''
         return
       }
     }
+    const combined = [...kycFiles, ...picked]
     setError(null)
     setKycFiles(combined)
     e.target.value = ''
@@ -337,7 +347,6 @@ export function AddWorkerDialog({
             <input
               ref={profileInputRef}
               type="file"
-              name="profile_image"
               accept="image/*"
               capture="environment"
               className="hidden"
@@ -432,9 +441,15 @@ export function AddWorkerDialog({
               style={{ borderColor: 'var(--canvas-border)' }}
             />
             <span className="text-sm" style={{ color: 'var(--canvas-text)' }}>
-              Active after approval (can sign in and work tickets)
+              {canApproveStaff
+                ? 'Create as active now (approved by you)'
+                : 'Activate automatically after Super Admin / Central Support approval'}
             </span>
           </label>
+          <p className="text-[10px] -mt-2" style={{ color: 'var(--canvas-muted)' }}>
+            If unchecked, the worker is created as inactive after approval and cannot sign in
+            until activated.
+          </p>
 
           {success && (
             <div
@@ -501,7 +516,7 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <label className="block">
+    <div className="block">
       <span
         className="block text-[11px] font-medium uppercase tracking-wider mb-1"
         style={{ color: 'var(--canvas-muted)' }}
@@ -515,6 +530,6 @@ function Field({
         </span>
       )}
       {children}
-    </label>
+    </div>
   )
 }

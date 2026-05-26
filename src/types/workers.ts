@@ -46,6 +46,11 @@ export interface PendingActivationRow {
   status: string
   staff_status: 'pending'
   created_at: string
+  notes: string | null
+  image_url: string | null
+  profile_image_url?: string | null
+  kyc_documents: StaffKycDocument[]
+  active_requested: boolean
   territories: { name: string } | null
   roles: { name: string; display_name: string | null } | null
   requested_by_user: { full_name: string } | null

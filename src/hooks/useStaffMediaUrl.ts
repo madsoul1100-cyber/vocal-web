@@ -56,3 +56,11 @@ export function workerProfileMediaPath(workerId: string): string {
 export function workerKycMediaPath(workerId: string, docIndex: number): string {
   return `/workers/${workerId}/media/kyc/${docIndex}`
 }
+
+export function pendingWorkerProfileMediaPath(requestId: string): string {
+  return `/workers/activation/${requestId}/media/profile`
+}
+
+export function pendingWorkerKycMediaPath(requestId: string, docIndex: number): string {
+  return `/workers/activation/${requestId}/media/kyc/${docIndex}`
+}

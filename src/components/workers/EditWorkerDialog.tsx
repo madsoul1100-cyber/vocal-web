@@ -98,14 +98,22 @@ export function EditWorkerDialog({
   }, [profileFile])
 
   const handleProfilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const files = Array.from(e.target.files ?? [])
+    if (files.length > 1) {
+      setError('Choose only one profile photo')
+      e.target.value = ''
+      return
+    }
+    const file = files[0]
     if (!file) return
     if (!file.type.startsWith('image/')) {
       setError('Profile photo must be an image')
+      e.target.value = ''
       return
     }
     if (file.size > 5 * 1024 * 1024) {
       setError('Profile photo must be under 5 MB')
+      e.target.value = ''
       return
     }
     setError(null)
@@ -117,17 +125,19 @@ export function EditWorkerDialog({
     const picked = Array.from(e.target.files ?? [])
     if (picked.length === 0) return
     const existingCount = formWorker?.kyc_documents?.length ?? 0
-    const combined = [...kycFiles, ...picked].slice(0, MAX_KYC_FILES - existingCount)
-    if (combined.length < kycFiles.length + picked.length) {
+    if (existingCount + kycFiles.length + picked.length > MAX_KYC_FILES) {
       setError(`At most ${MAX_KYC_FILES} KYC documents total`)
+      e.target.value = ''
       return
     }
     for (const f of picked) {
       if (f.size > 10 * 1024 * 1024) {
         setError('Each KYC document must be under 10 MB')
+        e.target.value = ''
         return
       }
     }
+    const combined = [...kycFiles, ...picked]
     setError(null)
     setKycFiles(combined)
     e.target.value = ''
@@ -543,7 +553,7 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <label className="block">
+    <div className="block">
       <span
         className="block text-[11px] font-medium uppercase tracking-wider mb-1"
         style={{ color: 'var(--canvas-muted)' }}
@@ -557,6 +567,6 @@ function Field({
         </span>
       )}
       {children}
-    </label>
+    </div>
   )
 }

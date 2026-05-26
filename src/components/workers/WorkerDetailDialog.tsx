@@ -3,8 +3,11 @@ import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiFetch } from '@/api/client'
 import { ModalPortal } from '@/components/ui/ModalPortal'
+import { ActivationActions } from '@/components/workers/ActivationActions'
 import { StaffStatusBadge } from '@/components/workers/StaffStatusBadge'
 import {
+  pendingWorkerKycMediaPath,
+  pendingWorkerProfileMediaPath,
   useStaffMediaUrl,
   workerKycMediaPath,
   workerProfileMediaPath,
@@ -48,19 +51,18 @@ function WorkerProfilePhoto({
 }
 
 function KycDocumentItem({
-  workerId,
   doc,
   index,
+  fallbackPath,
 }: {
-  workerId: string
   doc: StaffKycDocument
   index: number
+  fallbackPath: string
 }) {
   const { getAccessToken } = useAuth()
   const isImage = doc.mime_type?.startsWith('image/') ?? false
-  const proxyPath = workerKycMediaPath(workerId, index)
   const proxySrc = useStaffMediaUrl(
-    !doc.download_url ? proxyPath : null,
+    !doc.download_url ? fallbackPath : null,
     getAccessToken,
     !doc.download_url,
   )
@@ -119,6 +121,29 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
         {value ?? '—'}
       </dd>
     </div>
+  )
+}
+
+function PendingProfilePhoto({ request }: { request: PendingActivationRow }) {
+  const { getAccessToken } = useAuth()
+  const proxySrc = useStaffMediaUrl(
+    request.image_url && !request.profile_image_url
+      ? pendingWorkerProfileMediaPath(request.id)
+      : null,
+    getAccessToken,
+    !!request.image_url && !request.profile_image_url,
+  )
+  const src = request.profile_image_url ?? proxySrc
+  if (!request.image_url || !src) {
+    return <span style={{ color: 'var(--canvas-muted)' }}>None</span>
+  }
+  return (
+    <img
+      src={src}
+      alt="Profile"
+      className="h-28 w-28 rounded-lg object-cover border"
+      style={{ borderColor: 'var(--canvas-border)' }}
+    />
   )
 }
 
@@ -242,9 +267,9 @@ export function WorkerDetailDialog({ worker, open, onClose, onEdit }: Props) {
                     {display.kyc_documents.map((doc, index) => (
                       <KycDocumentItem
                         key={doc.storage_path}
-                        workerId={display.id}
                         doc={doc}
                         index={index}
+                        fallbackPath={workerKycMediaPath(display.id, index)}
                       />
                     ))}
                   </ul>
@@ -291,9 +316,17 @@ interface PendingProps {
   request: PendingActivationRow
   open: boolean
   onClose: () => void
+  canApprove?: boolean
+  onDone?: () => void
 }
 
-export function PendingRequestDetailDialog({ request, open, onClose }: PendingProps) {
+export function PendingRequestDetailDialog({
+  request,
+  open,
+  onClose,
+  canApprove = false,
+  onDone,
+}: PendingProps) {
   const roleLabel =
     request.roles?.display_name ?? request.roles?.name?.replace(/_/g, ' ') ?? '—'
 
@@ -319,10 +352,15 @@ export function PendingRequestDetailDialog({ request, open, onClose }: PendingPr
         </p>
 
         <dl>
+          <DetailRow label="Profile photo" value={<PendingProfilePhoto request={request} />} />
           <DetailRow label="Role" value={<span className="capitalize">{roleLabel}</span>} />
           <DetailRow label="Email" value={request.email} />
           <DetailRow label="Phone" value={request.phone} />
           <DetailRow label="Territory" value={request.territories?.name} />
+          <DetailRow
+            label="Activation"
+            value={request.active_requested ? 'Activate after approval' : 'Keep inactive after approval'}
+          />
           <DetailRow
             label="Requested by"
             value={request.requested_by_user?.full_name}
@@ -331,9 +369,51 @@ export function PendingRequestDetailDialog({ request, open, onClose }: PendingPr
             label="Submitted"
             value={formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
           />
+          <DetailRow
+            label="Notes"
+            value={
+              request.notes ? (
+                <span className="whitespace-pre-wrap text-xs" style={{ color: 'var(--canvas-text-dim)' }}>
+                  {request.notes}
+                </span>
+              ) : null
+            }
+          />
+          <DetailRow
+            label="KYC documents"
+            value={
+              request.kyc_documents.length > 0 ? (
+                <ul className="space-y-2 w-full">
+                  {request.kyc_documents.map((doc, index) => (
+                    <KycDocumentItem
+                      key={doc.storage_path}
+                      doc={doc}
+                      index={index}
+                      fallbackPath={pendingWorkerKycMediaPath(request.id, index)}
+                    />
+                  ))}
+                </ul>
+              ) : (
+                <span style={{ color: 'var(--canvas-muted)' }}>None</span>
+              )
+            }
+          />
         </dl>
 
-        <div className="flex justify-end pt-4 mt-2 border-t" style={{ borderColor: 'var(--canvas-border)' }}>
+        <div
+          className="flex items-center justify-end gap-2 pt-4 mt-2 border-t"
+          style={{ borderColor: 'var(--canvas-border)' }}
+        >
+          {canApprove && (
+            <ActivationActions
+              id={request.id}
+              name={request.full_name}
+              onDone={() => {
+                onDone?.()
+                onClose()
+              }}
+            />
+          )}
           <button
             type="button"
             onClick={onClose}

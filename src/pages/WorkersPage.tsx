@@ -445,6 +445,8 @@ export function WorkersPage() {
           request={viewingPending}
           open={!!viewingPending}
           onClose={() => setViewingPending(null)}
+          canApprove={canApprove}
+          onDone={refresh}
         />
       )}
 
