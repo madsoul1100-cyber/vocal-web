@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiPostForm } from '@/api/client'
 import { ModalPortal } from '@/components/ui/ModalPortal'
-import { TerritoryMultiSelect } from '@/components/workers/TerritoryMultiSelect'
-import type { RoleOption, TerritoryOption } from '@/types/workers'
+import {
+  expandTerritorySelections,
+  TerritoryCascadeSelect,
+} from '@/components/workers/TerritoryCascadeSelect'
+import type { RoleOption, TerritoryOption, TerritorySelection } from '@/types/workers'
 
 interface Props {
   territories: TerritoryOption[]
@@ -29,7 +32,7 @@ export function AddWorkerDialog({
 }: Props) {
   const { getAccessToken } = useAuth()
   const [open, setOpen] = useState(false)
-  const [selectedTerritoryIds, setSelectedTerritoryIds] = useState<string[]>([])
+  const [territorySelections, setTerritorySelections] = useState<TerritorySelection[]>([])
   const [primaryTerritoryId, setPrimaryTerritoryId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -50,7 +53,7 @@ export function AddWorkerDialog({
       setProfileFile(null)
       setProfilePreview(null)
       setKycFiles([])
-      setSelectedTerritoryIds([])
+      setTerritorySelections([])
       setPrimaryTerritoryId(null)
     }
   }, [open])
@@ -131,9 +134,18 @@ export function AddWorkerDialog({
     const notes = String(form.get('notes') ?? '').trim()
     if (notes) form.set('notes', notes)
 
-    form.set('territory_ids', JSON.stringify(selectedTerritoryIds))
-    if (primaryTerritoryId) {
-      form.set('primary_territory_id', primaryTerritoryId)
+    form.set('territory_assignments', JSON.stringify(territorySelections))
+    try {
+      const expanded = await expandTerritorySelections(territorySelections, getAccessToken)
+      form.set('territory_ids', JSON.stringify(expanded))
+      if (primaryTerritoryId && expanded.includes(primaryTerritoryId)) {
+        form.set('primary_territory_id', primaryTerritoryId)
+      } else if (expanded[0]) {
+        form.set('primary_territory_id', expanded[0])
+      }
+    } catch {
+      form.set('territory_ids', JSON.stringify(territorySelections.map((s) => s.territory_id)))
+      if (primaryTerritoryId) form.set('primary_territory_id', primaryTerritoryId)
     }
 
     if (profileFile) {
@@ -314,18 +326,16 @@ export function AddWorkerDialog({
 
           <Field
             label="Territories"
-            hint="Optional — select one or more; mark one as primary"
+            hint="Telangana → district → mandal/ward. Assign an area only, or all sub-areas under it."
           >
-            <TerritoryMultiSelect
-              territories={territories}
-              selectedIds={selectedTerritoryIds}
-              primaryId={primaryTerritoryId}
-              onChange={(ids, primary) => {
-                setSelectedTerritoryIds(ids)
+            <TerritoryCascadeSelect
+              selections={territorySelections}
+              primaryTerritoryId={primaryTerritoryId}
+              onChange={(next, primary) => {
+                setTerritorySelections(next)
                 setPrimaryTerritoryId(primary)
               }}
               getAccessToken={getAccessToken}
-              onTerritoryCreated={onTerritoryCreated}
             />
           </Field>
 

@@ -61,6 +61,28 @@ export interface TerritoryOption {
   name: string
 }
 
+export interface TerritoryLevelInfo {
+  level_order: number
+  label: string
+}
+
+export interface TerritoryHierarchyNode {
+  id: string
+  name: string
+  code: string | null
+  level_order: number
+  level_label: string
+  parent_territory_id: string | null
+  has_children: boolean
+}
+
+/** One logical assignment from the cascade picker. */
+export interface TerritorySelection {
+  territory_id: string
+  name: string
+  include_descendants: boolean
+}
+
 export interface RoleOption {
   id: string
   name: string

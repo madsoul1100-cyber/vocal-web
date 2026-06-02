@@ -7,8 +7,18 @@ import {
   useStaffMediaUrl,
   workerProfileMediaPath,
 } from '@/hooks/useStaffMediaUrl'
-import { TerritoryMultiSelect } from '@/components/workers/TerritoryMultiSelect'
-import type { RoleOption, StaffStatus, TerritoryOption, WorkerDetail, WorkerRow } from '@/types/workers'
+import {
+  expandTerritorySelections,
+  TerritoryCascadeSelect,
+} from '@/components/workers/TerritoryCascadeSelect'
+import type {
+  RoleOption,
+  StaffStatus,
+  TerritoryOption,
+  TerritorySelection,
+  WorkerDetail,
+  WorkerRow,
+} from '@/types/workers'
 
 interface Props {
   worker: WorkerRow
@@ -39,7 +49,7 @@ export function EditWorkerDialog({
 }: Props) {
   const { getAccessToken } = useAuth()
   const [error, setError] = useState<string | null>(null)
-  const [selectedTerritoryIds, setSelectedTerritoryIds] = useState<string[]>([])
+  const [territorySelections, setTerritorySelections] = useState<TerritorySelection[]>([])
   const [primaryTerritoryId, setPrimaryTerritoryId] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [profileFile, setProfileFile] = useState<File | null>(null)
@@ -73,17 +83,22 @@ export function EditWorkerDialog({
       setProfilePreview(null)
       setRemoveProfile(false)
       setKycFiles([])
-      setSelectedTerritoryIds([])
+      setTerritorySelections([])
       setPrimaryTerritoryId(null)
     }
   }, [open])
 
   useEffect(() => {
     if (!formWorker?.territories) return
-    const ids = formWorker.territories.map((t) => t.id)
     const primary =
       formWorker.territories.find((t) => t.is_primary)?.id ?? formWorker.territories[0]?.id ?? null
-    setSelectedTerritoryIds(ids)
+    setTerritorySelections(
+      formWorker.territories.map((t) => ({
+        territory_id: t.id,
+        name: t.name,
+        include_descendants: false,
+      })),
+    )
     setPrimaryTerritoryId(primary)
   }, [formWorker?.id, formWorker?.territories])
 
@@ -162,9 +177,18 @@ export function EditWorkerDialog({
     const notes = String(form.get('notes') ?? '').trim()
     form.set('notes', notes)
 
-    form.set('territory_ids', JSON.stringify(selectedTerritoryIds))
-    if (primaryTerritoryId) {
-      form.set('primary_territory_id', primaryTerritoryId)
+    form.set('territory_assignments', JSON.stringify(territorySelections))
+    try {
+      const expanded = await expandTerritorySelections(territorySelections, getAccessToken)
+      form.set('territory_ids', JSON.stringify(expanded))
+      if (primaryTerritoryId && expanded.includes(primaryTerritoryId)) {
+        form.set('primary_territory_id', primaryTerritoryId)
+      } else if (expanded[0]) {
+        form.set('primary_territory_id', expanded[0])
+      }
+    } catch {
+      form.set('territory_ids', JSON.stringify(territorySelections.map((s) => s.territory_id)))
+      if (primaryTerritoryId) form.set('primary_territory_id', primaryTerritoryId)
     }
 
     if (removeProfile) form.set('remove_profile_image', 'true')
@@ -321,18 +345,16 @@ export function EditWorkerDialog({
 
           <Field
             label="Territories"
-            hint="Optional — select one or more; mark one as primary"
+            hint="Telangana → district → mandal/ward. Assign an area only, or all sub-areas under it."
           >
-            <TerritoryMultiSelect
-              territories={territories}
-              selectedIds={selectedTerritoryIds}
-              primaryId={primaryTerritoryId}
-              onChange={(ids, primary) => {
-                setSelectedTerritoryIds(ids)
+            <TerritoryCascadeSelect
+              selections={territorySelections}
+              primaryTerritoryId={primaryTerritoryId}
+              onChange={(next, primary) => {
+                setTerritorySelections(next)
                 setPrimaryTerritoryId(primary)
               }}
               getAccessToken={getAccessToken}
-              onTerritoryCreated={onTerritoryCreated}
             />
           </Field>
 
