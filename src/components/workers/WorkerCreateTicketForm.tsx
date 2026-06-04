@@ -194,8 +194,8 @@ export function WorkerCreateTicketForm({ onCreated, navigateOnSuccess = true }: 
         onClick={() => setOpen(true)}
         className="w-full text-sm font-medium px-4 py-3 rounded-lg border"
         style={{
-          borderColor: 'var(--brand-primary)',
-          color: 'var(--brand-primary)',
+          borderColor: 'var(--primary)',
+          color: 'var(--primary)',
           background: 'var(--canvas-surface)',
         }}
       >
@@ -369,14 +369,42 @@ export function WorkerCreateTicketForm({ onCreated, navigateOnSuccess = true }: 
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-full text-sm font-medium px-4 py-2.5 rounded-lg text-white disabled:opacity-60"
-        style={{ background: 'var(--brand-primary)' }}
+      <div
+        className="flex flex-col sm:flex-row gap-2 pt-2 border-t sticky bottom-0 -mx-4 px-4 pb-1 -mb-1"
+        style={{
+          borderColor: 'var(--canvas-border)',
+          background: 'var(--canvas-surface)',
+        }}
       >
-        {submitting ? 'Creating…' : 'Create ticket'}
-      </button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="flex-1 text-sm font-semibold px-4 py-2.5 rounded-lg disabled:opacity-60 order-1 sm:order-2"
+          style={{
+            background: 'var(--primary)',
+            color: 'var(--primary-text)',
+          }}
+        >
+          {submitting ? 'Creating…' : 'Create ticket'}
+        </button>
+        <button
+          type="button"
+          disabled={submitting}
+          className="text-sm font-medium px-4 py-2.5 rounded-lg border order-2 sm:order-1 sm:flex-none"
+          style={{
+            borderColor: 'var(--canvas-border)',
+            color: 'var(--canvas-text-dim)',
+            background: 'var(--canvas-surface-alt)',
+          }}
+          onClick={() => {
+            resetForm()
+            setOpen(false)
+            setError(null)
+          }}
+        >
+          Cancel
+        </button>
+      </div>
     </form>
   )
 }

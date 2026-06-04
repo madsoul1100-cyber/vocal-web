@@ -48,7 +48,7 @@ export function TicketsPage() {
       <PageHeader title="Tickets" subtitle={`${data?.count ?? 0} tickets${stage ? ` · ${stage.replace('_', ' ')}` : ''}`} />
       <div className="p-6 sm:p-8 space-y-4 max-w-[1400px] mx-auto">
         {canShowWorkerCreateTicket(user?.role) && user?.role !== 'ground_worker' && (
-          <div className="max-w-xl">
+          <div className="max-w-xl relative z-10">
             <WorkerCreateTicketForm
               navigateOnSuccess
               onCreated={() => {
