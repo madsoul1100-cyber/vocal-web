@@ -7,6 +7,7 @@ import { apiFetch } from '@/api/client'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { WorkerQueue } from '@/components/workers/WorkerQueue'
 import { TelegramLinkBanner } from '@/components/workers/TelegramLinkBanner'
+import { WorkerCreateTicketForm } from '@/components/workers/WorkerCreateTicketForm'
 import type { WorkerAssignmentsPayload } from '@/types/worker'
 
 export function MyAssignmentsPage() {
@@ -64,6 +65,9 @@ export function MyAssignmentsPage() {
         )}
         {user && (
           <TelegramLinkBanner userId={user.id} linked={data?.telegramLinked ?? false} />
+        )}
+        {user && (
+          <WorkerCreateTicketForm onCreated={refresh} />
         )}
         {data && user && (
           <WorkerQueue

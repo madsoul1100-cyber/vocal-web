@@ -1,9 +1,14 @@
 import { useSearchParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { apiFetch } from '@/api/client'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { TicketTable } from '@/components/tickets/TicketTable'
+import {
+  WorkerCreateTicketForm,
+  canShowWorkerCreateTicket,
+} from '@/components/workers/WorkerCreateTicketForm'
 import type { TicketStage } from '@/types/database'
 
 const STAGE_FILTERS: { label: string; value: TicketStage | 'all' }[] = [
@@ -16,6 +21,8 @@ const STAGE_FILTERS: { label: string; value: TicketStage | 'all' }[] = [
 
 export function TicketsPage() {
   const { getAccessToken } = useAuth()
+  const { data: user } = useCurrentUser()
+  const queryClient = useQueryClient()
   const [params, setParams] = useSearchParams()
   const stage = params.get('stage') as TicketStage | null
   const search = params.get('search') ?? ''
@@ -40,6 +47,16 @@ export function TicketsPage() {
     <div>
       <PageHeader title="Tickets" subtitle={`${data?.count ?? 0} tickets${stage ? ` · ${stage.replace('_', ' ')}` : ''}`} />
       <div className="p-6 sm:p-8 space-y-4 max-w-[1400px] mx-auto">
+        {canShowWorkerCreateTicket(user?.role) && user?.role !== 'ground_worker' && (
+          <div className="max-w-xl">
+            <WorkerCreateTicketForm
+              navigateOnSuccess
+              onCreated={() => {
+                void queryClient.invalidateQueries({ queryKey: ['tickets'] })
+              }}
+            />
+          </div>
+        )}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: 'var(--slate-100)' }}>
             {STAGE_FILTERS.map(f => {
