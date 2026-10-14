@@ -19,6 +19,22 @@ import { AuditPage } from '@/pages/AuditPage'
 import { JobsPage } from '@/pages/JobsPage'
 import { IntakeLabPage } from '@/pages/IntakeLabPage'
 import { IntakeSettingsPage } from '@/pages/IntakeSettingsPage'
+import { CitizenLayout } from '@/pages/bharosa/CitizenLayout'
+import { BharosaHome, BharosaLogin, FeedPage, PublicDashboard, StatusPage, TrackPage } from '@/pages/bharosa/PublicPages'
+import { CaseDetailPage, CasesPage, CompletePage, WizardPage } from '@/pages/bharosa/CasePages'
+import {
+  AiReviewPage,
+  ApprovalsPage,
+  AssistedIntakePage,
+  BharosaJobsPage,
+  BharosaSettingsPage,
+  CaseWorkspacePage,
+  DirectorySourcesPage,
+  EscalationsPage,
+  FeedAdminPage,
+  TasksPage,
+  VerificationPage,
+} from '@/pages/bharosa/OpsPages'
 
 export default function App() {
   return (
@@ -27,6 +43,22 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/sign-in" element={<SignInPage />} />
         <Route path="/sign-up" element={<SignUpPage />} />
+
+        <Route element={<CitizenLayout />}>
+          <Route path="/bharosa" element={<BharosaHome />} />
+          <Route path="/bharosa/login" element={<BharosaLogin />} />
+          <Route path="/bharosa/new" element={<WizardPage />} />
+          <Route path="/bharosa/cases" element={<CasesPage />} />
+          <Route path="/bharosa/cases/:id" element={<CaseDetailPage />} />
+          <Route path="/cases/:id" element={<CaseDetailPage />} />
+          <Route path="/bharosa/status" element={<StatusPage />} />
+          <Route path="/bharosa/dashboard" element={<PublicDashboard />} />
+          <Route path="/bharosa/feed" element={<FeedPage />} />
+          <Route path="/bharosa/track/:token" element={<TrackPage />} />
+          <Route path="/track/:token" element={<TrackPage />} />
+          <Route path="/bharosa/complete/:token" element={<CompletePage />} />
+          <Route path="/complete/:token" element={<CompletePage />} />
+        </Route>
 
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
@@ -44,6 +76,17 @@ export default function App() {
             <Route path="/jobs" element={<JobsPage />} />
             <Route path="/admin/intake-lab" element={<IntakeLabPage />} />
             <Route path="/admin/intake-settings" element={<IntakeSettingsPage />} />
+            <Route path="/bharosa/intake" element={<AssistedIntakePage />} />
+            <Route path="/bharosa/verification" element={<VerificationPage />} />
+            <Route path="/bharosa/tasks" element={<TasksPage />} />
+            <Route path="/bharosa/approvals" element={<ApprovalsPage />} />
+            <Route path="/bharosa/escalations" element={<EscalationsPage />} />
+            <Route path="/bharosa/workspace/:id" element={<CaseWorkspacePage />} />
+            <Route path="/bharosa/ai" element={<AiReviewPage />} />
+            <Route path="/bharosa/directory-sources" element={<DirectorySourcesPage />} />
+            <Route path="/bharosa/feed-admin" element={<FeedAdminPage />} />
+            <Route path="/bharosa/settings" element={<BharosaSettingsPage />} />
+            <Route path="/bharosa/jobs" element={<BharosaJobsPage />} />
           </Route>
         </Route>
 

@@ -106,6 +106,7 @@ export function LandingPage() {
             </a>
             <nav aria-label="Main navigation" className="lp-nav-links">
               <a href="#citizens" className="lp-nav-link">For Citizens</a>
+              <Link to="/bharosa" className="lp-nav-link">File a complaint</Link>
               <a href="#leaders" className="lp-nav-link">For Leaders</a>
             </nav>
             <Link to="/sign-in" className="lp-btn-red lp-nav-cta">
