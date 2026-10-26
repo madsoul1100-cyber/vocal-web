@@ -17,3 +17,46 @@ export interface DirectoryListResponse {
   count: number
   canWrite: boolean
 }
+
+export interface CatalogDepartment {
+  name: string
+  total: number
+  mail: number
+  number_only: number
+}
+
+export interface DirectoryCatalog {
+  id: string
+  name: string
+  fetched_at: string | null
+  total: number
+  mail: number
+  number_only: number
+  departments: CatalogDepartment[]
+}
+
+export interface CatalogContact {
+  id: string
+  name: string
+  office: string
+  designation: string
+  department: string
+  email: string
+  phone: string
+  channel: 'mail' | 'number' | 'both'
+  categories: string
+  escalation_level: number
+  source_url: string
+}
+
+export interface CatalogListResponse {
+  catalogs: DirectoryCatalog[]
+}
+
+export interface CatalogQueryResponse {
+  catalog: DirectoryCatalog
+  contacts: CatalogContact[]
+  total: number
+  limit: number
+  offset: number
+}

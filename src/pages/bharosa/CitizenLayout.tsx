@@ -2,8 +2,8 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { CitizenSessionProvider, useCitizenSession } from './session'
 
 const NAV = {
-  te: { home: 'హోమ్', file: 'ఫిర్యాదు', cases: 'నా కేసులు', track: 'స్థితి', dash: 'డాష్‌బోర్డ్', feed: 'వార్తలు', in: 'లాగిన్', out: 'బయటకు' },
-  en: { home: 'Home', file: 'File', cases: 'My cases', track: 'Status', dash: 'Dashboard', feed: 'Feed', in: 'Sign in', out: 'Sign out' },
+  te: { home: 'హోమ్', help: 'సహాయం', file: 'ఫిర్యాదు', cases: 'నా కేసులు', track: 'స్థితి', dash: 'డాష్‌బోర్డ్', feed: 'వార్తలు', in: 'లాగిన్', out: 'బయటకు' },
+  en: { home: 'Home', help: 'Help', file: 'File', cases: 'My cases', track: 'Status', dash: 'Dashboard', feed: 'Feed', in: 'Sign in', out: 'Sign out' },
 }
 
 function Shell() {
@@ -16,6 +16,7 @@ function Shell() {
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-2 flex-wrap">
           <Link to="/bharosa" className="font-semibold text-sm mr-2">Bharosa</Link>
           <NavLink to="/bharosa" end className={link}>{t.home}</NavLink>
+          <NavLink to="/bharosa/help" className={link}>{t.help}</NavLink>
           <NavLink to="/bharosa/new" className={link}>{t.file}</NavLink>
           <NavLink to="/bharosa/cases" className={link}>{t.cases}</NavLink>
           <NavLink to="/bharosa/status" className={link}>{t.track}</NavLink>

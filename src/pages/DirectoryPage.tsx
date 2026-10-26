@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Badge } from '@/components/ui/Badge'
 import { ContactFormDialog } from '@/components/directory/ContactFormDialog'
 import { ArchiveContactButton } from '@/components/directory/ArchiveContactButton'
+import { CatalogBrowser } from '@/components/directory/CatalogBrowser'
 import type { DirectoryContact, DirectoryListResponse } from '@/types/directory'
 
 type StatusFilter = 'all' | 'verified' | 'unverified' | 'outdated'
@@ -31,6 +32,7 @@ export function DirectoryPage() {
 
   const status = (searchParams.get('status') as StatusFilter | null) ?? undefined
   const search = searchParams.get('search') ?? ''
+  const view = searchParams.get('view') ?? (status || search ? 'saved' : 'catalog')
 
   const queryString = useMemo(() => {
     const qp = new URLSearchParams()
@@ -42,6 +44,7 @@ export function DirectoryPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['directory', status ?? 'all', search],
+    enabled: view === 'saved',
     queryFn: () =>
       apiFetch<DirectoryListResponse>(`/directory${queryString}`, { getToken: getAccessToken }),
   })
@@ -54,6 +57,7 @@ export function DirectoryPage() {
     const qp = new URLSearchParams()
     const nextStatus = changes.status !== undefined ? changes.status : status
     const nextSearch = changes.search !== undefined ? changes.search : search
+    qp.set('view', 'saved')
     if (nextStatus && nextStatus !== 'all') qp.set('status', nextStatus)
     if (nextSearch.trim()) qp.set('search', nextSearch.trim())
     const s = qp.toString()
@@ -66,6 +70,7 @@ export function DirectoryPage() {
     const q = String(fd.get('search') ?? '')
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
+      next.set('view', 'saved')
       if (q.trim()) next.set('search', q.trim())
       else next.delete('search')
       return next
@@ -80,15 +85,56 @@ export function DirectoryPage() {
     <div>
       <PageHeader
         title="Directory"
-        subtitle={`${count} contact${count !== 1 ? 's' : ''} · officials, vendors, partners`}
+        subtitle={
+          view === 'catalog'
+            ? 'Pick a published directory and a department. Mail means an email is on file. Number only means the contact has a phone and no email.'
+            : `${count} contact${count !== 1 ? 's' : ''} · officials, vendors, partners`
+        }
         actions={
-          canWrite ? (
+          view === 'saved' && canWrite ? (
             <ContactFormDialog mode="create" triggerLabel="+ New contact" onSaved={refresh} />
           ) : undefined
         }
       />
 
       <div className="p-6 sm:p-8 space-y-4 max-w-[1400px] mx-auto">
+        <div className="flex items-center gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--slate-100)' }}>
+          <button
+            type="button"
+            className="text-xs px-3 py-1.5 rounded-md font-medium"
+            style={{
+              background: view === 'catalog' ? 'var(--canvas-surface)' : 'transparent',
+              color: view === 'catalog' ? 'var(--canvas-text)' : 'var(--canvas-muted)',
+              boxShadow: view === 'catalog' ? 'var(--shadow-sm)' : 'none',
+            }}
+            onClick={() => setSearchParams((prev) => {
+              const next = new URLSearchParams(prev)
+              next.set('view', 'catalog')
+              return next
+            })}
+          >
+            Published directories
+          </button>
+          <button
+            type="button"
+            className="text-xs px-3 py-1.5 rounded-md font-medium"
+            style={{
+              background: view === 'saved' ? 'var(--canvas-surface)' : 'transparent',
+              color: view === 'saved' ? 'var(--canvas-text)' : 'var(--canvas-muted)',
+              boxShadow: view === 'saved' ? 'var(--shadow-sm)' : 'none',
+            }}
+            onClick={() => setSearchParams((prev) => {
+              const next = new URLSearchParams(prev)
+              next.set('view', 'saved')
+              return next
+            })}
+          >
+            Saved contacts
+          </button>
+        </div>
+
+        {view === 'catalog' ? <CatalogBrowser /> : (
+        <div className="space-y-4">
         <div className="flex items-center gap-3 flex-wrap">
           <div
             className="flex items-center gap-1 p-1 rounded-lg"
@@ -237,6 +283,8 @@ export function DirectoryPage() {
           <div className="card p-4 text-xs" style={{ color: 'var(--canvas-muted)' }}>
             Only central support can add or edit contacts.
           </div>
+        )}
+        </div>
         )}
       </div>
     </div>

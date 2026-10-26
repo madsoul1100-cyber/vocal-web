@@ -21,6 +21,7 @@ import { IntakeLabPage } from '@/pages/IntakeLabPage'
 import { IntakeSettingsPage } from '@/pages/IntakeSettingsPage'
 import { CitizenLayout } from '@/pages/bharosa/CitizenLayout'
 import { BharosaHome, BharosaLogin, FeedPage, PublicDashboard, StatusPage, TrackPage } from '@/pages/bharosa/PublicPages'
+import { GuidePage } from '@/pages/bharosa/GuidePage'
 import { CaseDetailPage, CasesPage, CompletePage, WizardPage } from '@/pages/bharosa/CasePages'
 import {
   AiReviewPage,
@@ -46,6 +47,7 @@ export default function App() {
 
         <Route element={<CitizenLayout />}>
           <Route path="/bharosa" element={<BharosaHome />} />
+          <Route path="/bharosa/help" element={<GuidePage />} />
           <Route path="/bharosa/login" element={<BharosaLogin />} />
           <Route path="/bharosa/new" element={<WizardPage />} />
           <Route path="/bharosa/cases" element={<CasesPage />} />

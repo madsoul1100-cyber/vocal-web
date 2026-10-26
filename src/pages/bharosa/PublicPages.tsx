@@ -35,7 +35,10 @@ export function BharosaHome() {
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <Link to="/bharosa/new" className="rounded-md px-3 py-2 text-sm font-medium" style={{ background: 'var(--primary)', color: '#fff' }}>
+        <Link to="/bharosa/help" className="rounded-md px-3 py-2 text-sm font-medium" style={{ background: 'var(--primary)', color: '#fff' }}>
+          {te ? 'సహాయం అడగండి' : 'Ask for help'}
+        </Link>
+        <Link to="/bharosa/new" className="rounded-md px-3 py-2 text-sm font-medium" style={{ border: '1px solid var(--canvas-border)' }}>
           {te ? 'ఫిర్యాదు చేయండి' : 'File a complaint'}
         </Link>
         <Link to="/bharosa/cases" className="rounded-md px-3 py-2 text-sm" style={{ border: '1px solid var(--canvas-border)' }}>
@@ -46,26 +49,42 @@ export function BharosaHome() {
   )
 }
 
+function loginDestination(raw: string): { phone: string } | { email: string } | null {
+  const value = raw.trim()
+  if (!value) return null
+  if (value.includes('@')) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? { email: value } : null
+  }
+  return value.replace(/\D/g, '').length >= 10 ? { phone: value } : null
+}
+
 export function BharosaLogin() {
   const { lang, signIn, setLang } = useCitizenSession()
   const navigate = useNavigate()
-  const [phone, setPhone] = useState('')
+  const [contact, setContact] = useState('')
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
-  const [sent, setSent] = useState<{ masked: string; dev?: string; wait: number } | null>(null)
+  const [sent, setSent] = useState<{ masked: string; channel: string; dev?: string; wait: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const te = lang === 'te'
+  const destination = loginDestination(contact)
 
   async function request() {
+    if (!destination) return
     setBusy(true)
     setError(null)
     try {
-      const res = await bharosaFetch<{ masked_phone: string; dev_code?: string; resend_after_seconds: number }>(
+      const res = await bharosaFetch<{ masked_destination?: string; masked_phone: string; channel?: string; dev_code?: string; resend_after_seconds: number }>(
         '/public/auth/otp/request',
-        { method: 'POST', body: { phone } },
+        { method: 'POST', body: destination },
       )
-      setSent({ masked: res.masked_phone, dev: res.dev_code, wait: res.resend_after_seconds })
+      setSent({
+        masked: res.masked_destination || res.masked_phone,
+        channel: res.channel || ('email' in destination ? 'email' : 'sms'),
+        dev: res.dev_code,
+        wait: res.resend_after_seconds,
+      })
       if (res.dev_code) setCode(res.dev_code)
     } catch (err) {
       setError(errText(err))
@@ -76,12 +95,13 @@ export function BharosaLogin() {
 
   async function verify(e: React.FormEvent) {
     e.preventDefault()
+    if (!destination) return
     setBusy(true)
     setError(null)
     try {
       const res = await bharosaFetch<{ token: string }>('/public/auth/otp/verify', {
         method: 'POST',
-        body: { phone, code, display_name: name || undefined, language: lang },
+        body: { ...destination, code, display_name: name || undefined, language: lang },
       })
       signIn(res.token)
       setLang(lang)
@@ -96,21 +116,27 @@ export function BharosaLogin() {
 
   return (
     <form onSubmit={verify} className="space-y-3 max-w-sm">
-      <h1 className="text-xl font-semibold">{te ? 'మొబైల్‌తో లాగిన్' : 'Sign in with mobile'}</h1>
-      <input className="w-full rounded-md px-3 py-2 text-sm" style={{ border: '1px solid var(--canvas-border)', background: 'var(--canvas-surface)' }} placeholder={te ? 'మొబైల్ నంబర్' : 'Mobile number'} value={phone} onChange={(e) => setPhone(e.target.value)} />
+      <h1 className="text-xl font-semibold">{te ? 'లాగిన్' : 'Sign in'}</h1>
+      <p className="text-sm" style={{ color: 'var(--canvas-muted)' }}>
+        {te
+          ? 'మొబైల్ నంబర్ లేదా ఇమెయిల్ పెట్టండి. కోడ్ అక్కడికే వస్తుంది. ఆ తర్వాత ఫిర్యాదు నమోదు చేయవచ్చు.'
+          : 'Enter a mobile number or an email. We send the code there, then you can file a complaint.'}
+      </p>
+      <input className="w-full rounded-md px-3 py-2 text-sm" style={{ border: '1px solid var(--canvas-border)', background: 'var(--canvas-surface)' }} placeholder={te ? 'మొబైల్ లేదా ఇమెయిల్' : 'Mobile number or email'} value={contact} onChange={(e) => setContact(e.target.value)} autoComplete="username" />
       <input className="w-full rounded-md px-3 py-2 text-sm" style={{ border: '1px solid var(--canvas-border)', background: 'var(--canvas-surface)' }} placeholder={te ? 'పేరు (ఐచ్ఛికం)' : 'Name (optional)'} value={name} onChange={(e) => setName(e.target.value)} />
-      <button type="button" disabled={busy || phone.length < 10} onClick={request} className="text-sm rounded-md px-3 py-2" style={{ border: '1px solid var(--canvas-border)' }}>
+      <button type="button" disabled={busy || !destination} onClick={request} className="text-sm rounded-md px-3 py-2 disabled:opacity-50" style={{ border: '1px solid var(--canvas-border)' }}>
         {te ? 'కోడ్ పంపండి' : 'Send code'}
       </button>
       {sent && (
         <p className="text-xs" style={{ color: 'var(--canvas-muted)' }}>
           {te ? 'కోడ్ పంపాం' : 'Code sent to'} {sent.masked}
+          {sent.channel === 'email' ? (te ? ' (ఇమెయిల్)' : ' (email)') : (te ? ' (మొబైల్)' : ' (mobile)')}
           {sent.dev ? ` · dev ${sent.dev}` : ''}
         </p>
       )}
       <input className="w-full rounded-md px-3 py-2 text-sm tracking-widest" style={{ border: '1px solid var(--canvas-border)', background: 'var(--canvas-surface)' }} placeholder="000000" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" />
       {error && <Notice tone="error">{error}</Notice>}
-      <button type="submit" disabled={busy || code.length < 6} className="rounded-md px-3 py-2 text-sm font-medium" style={{ background: 'var(--primary)', color: '#fff' }}>
+      <button type="submit" disabled={busy || code.length < 6 || !destination} className="rounded-md px-3 py-2 text-sm font-medium disabled:opacity-50" style={{ background: 'var(--primary)', color: '#fff' }}>
         {te ? 'ధృవీకరించండి' : 'Verify'}
       </button>
     </form>
