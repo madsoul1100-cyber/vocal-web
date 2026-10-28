@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { bharosaFetch } from '@/api/bharosa'
+import { bharosaFetch, getCitizenToken } from '@/api/bharosa'
 import { beginRecording, canListen, listenOnce, playSarvam, speakAnswer, stopSpokenAudio, transcribeRecording, voiceIsPlaying } from './guideVoice'
 import { Btn, Notice, errText } from './ui'
 
@@ -19,6 +19,16 @@ interface GuideMessage {
   body: string
 }
 
+interface GuideCaseChoice {
+  key: string
+  kind: 'ticket' | 'guide' | 'memory' | 'action'
+  id: string
+  title: string
+  status: string
+  status_label?: string
+  updated_at?: string
+}
+
 interface GuideTurn {
   session_id: string
   language: GuideLang
@@ -29,6 +39,8 @@ interface GuideTurn {
   contacts: GuideContact[]
   draft: { to: string; subject: string; body: string } | null
   messages: GuideMessage[]
+  case_choices?: GuideCaseChoice[]
+  focused_case?: { kind: string; id: string; title: string; status: string } | null
 }
 
 const SESSION_KEY = 'bharosa_guide_session'
@@ -51,6 +63,9 @@ const UI = {
     helped: 'This helped',
     newChat: 'New chat',
     mail: 'Send this email',
+    yourCases: 'Your issues — tap one to continue',
+    seeMore: 'See more',
+    newProblem: 'New problem',
     langs: { te: 'తెలుగు', en: 'English', hi: 'हिन्दी' },
   },
   te: {
@@ -69,6 +84,9 @@ const UI = {
     helped: 'ఇది సరిపోయింది',
     newChat: 'కొత్త చాట్',
     mail: 'ఈ ఇమెయిల్ పంపండి',
+    yourCases: 'మీ సమస్యలు — కొనసాగించడానికి నొక్కండి',
+    seeMore: 'ఇంకా చూపించు',
+    newProblem: 'కొత్త సమస్య',
     langs: { te: 'తెలుగు', en: 'English', hi: 'हिन्दी' },
   },
   hi: {
@@ -87,6 +105,9 @@ const UI = {
     helped: 'यह काफी है',
     newChat: 'नई बात',
     mail: 'यह ईमेल भेजें',
+    yourCases: 'आपकी समस्याएँ — जारी रखने के लिए दबाएँ',
+    seeMore: 'और दिखाएँ',
+    newProblem: 'नई समस्या',
     langs: { te: 'తెలుగు', en: 'English', hi: 'हिन्दी' },
   },
 } as const
@@ -109,6 +130,8 @@ export function GuidePage() {
   const [contacts, setContacts] = useState<GuideContact[]>([])
   const [draft, setDraft] = useState<GuideTurn['draft']>(null)
   const [status, setStatus] = useState<GuideTurn['status']>('open')
+  const [caseChoices, setCaseChoices] = useState<GuideCaseChoice[]>([])
+  const [focusedCase, setFocusedCase] = useState<GuideTurn['focused_case']>(null)
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [listening, setListening] = useState(false)
@@ -117,7 +140,9 @@ export function GuidePage() {
   const [error, setError] = useState<string | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const stopListenRef = useRef<(() => void) | null>(null)
+  const bootstrappedRef = useRef(false)
   const t = UI[lang]
+  const loggedIn = Boolean(getCitizenToken())
 
   useEffect(() => {
     return () => {
@@ -168,6 +193,8 @@ export function GuidePage() {
     setDraft(res.draft)
     setStatus(res.status)
     setLang(res.language)
+    setCaseChoices(res.case_choices ?? [])
+    setFocusedCase(res.focused_case ?? null)
   }
 
   async function send(message: string, confirm = false) {
@@ -180,6 +207,7 @@ export function GuidePage() {
       const res = await bharosaFetch<GuideTurn>('/public/guide/messages', {
         method: 'POST',
         lang: lang === 'hi' ? undefined : lang,
+        token: getCitizenToken(),
         body: { session_id: sessionId, message: value || null, language: lang, confirm_send: confirm },
       })
       apply(res)
@@ -193,6 +221,37 @@ export function GuidePage() {
     } finally {
       setBusy(false)
     }
+  }
+
+  /** Logged-in bootstrap: empty turn so Priya can list top cases. */
+  async function bootstrapLoggedIn() {
+    if (!getCitizenToken() || bootstrappedRef.current || busy) return
+    bootstrappedRef.current = true
+    stopSpokenAudio()
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await bharosaFetch<GuideTurn>('/public/guide/messages', {
+        method: 'POST',
+        lang: lang === 'hi' ? undefined : lang,
+        token: getCitizenToken(),
+        body: { session_id: sessionId, message: null, language: lang, confirm_send: false },
+      })
+      apply(res)
+    } catch (err) {
+      setError(errText(err))
+      bootstrappedRef.current = false
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function pickCase(choice: GuideCaseChoice) {
+    if (choice.kind === 'action') {
+      void send(choice.id === 'see_more' ? 'see more' : choice.id === 'new_issue' ? '__case:action:new_issue' : choice.title)
+      return
+    }
+    void send(`__case:${choice.kind}:${choice.id}`)
   }
 
   function startTalk() {
@@ -252,9 +311,22 @@ export function GuidePage() {
     setContacts([])
     setDraft(null)
     setStatus('open')
+    setCaseChoices([])
+    setFocusedCase(null)
     setText('')
     setListening(false)
+    bootstrappedRef.current = false
+    if (getCitizenToken()) {
+      queueMicrotask(() => void bootstrapLoggedIn())
+    }
   }
+
+  useEffect(() => {
+    if (!loggedIn) return
+    if (messages.length > 0) return
+    void bootstrapLoggedIn()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedIn])
 
   return (
     <div className="flex flex-col gap-3" style={{ minHeight: '70vh' }}>
@@ -291,7 +363,7 @@ export function GuidePage() {
       </div>
 
       <div className="flex-1 space-y-3 rounded-lg p-3" style={{ background: 'var(--canvas-surface)', border: '1px solid var(--canvas-border)', minHeight: 360 }}>
-        {messages.length === 0 && (
+        {messages.length === 0 && caseChoices.length === 0 && (
           <div className="flex flex-wrap gap-2">
             {STARTERS[lang].map((starter) => (
               <button
@@ -312,6 +384,43 @@ export function GuidePage() {
             {m.body}
           </div>
         ))}
+        {caseChoices.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-xs font-medium" style={{ color: 'var(--canvas-muted)' }}>{t.yourCases}</div>
+            <div className="flex flex-col gap-2">
+              {caseChoices.map((c) => (
+                <button
+                  key={`${c.kind}:${c.id}`}
+                  type="button"
+                  disabled={busy}
+                  className="text-left text-sm rounded-lg px-3 py-2"
+                  style={{
+                    border: '1px solid var(--canvas-border)',
+                    background: c.kind === 'action' ? 'transparent' : 'var(--canvas-bg)',
+                  }}
+                  onClick={() => pickCase(c)}
+                >
+                  {c.kind === 'action' ? (
+                    <span>{c.id === 'see_more' ? t.seeMore : c.id === 'new_issue' ? t.newProblem : c.title}</span>
+                  ) : (
+                    <>
+                      <span className="font-medium">{c.key}. {c.title}</span>
+                      <span className="block text-xs mt-0.5" style={{ color: 'var(--canvas-muted)' }}>
+                        {c.status_label || c.status}
+                        {c.updated_at ? ` · ${c.updated_at}` : ''}
+                      </span>
+                    </>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {focusedCase && (
+          <div className="text-xs rounded-md px-2 py-1" style={{ background: 'var(--canvas-bg)', color: 'var(--canvas-muted)' }}>
+            Continuing: {focusedCase.title}
+          </div>
+        )}
         {contacts.length > 0 && (
           <div className="text-xs space-y-1" style={{ color: 'var(--canvas-muted)' }}>
             {contacts.map((c) => (
