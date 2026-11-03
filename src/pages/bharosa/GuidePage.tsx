@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { bharosaFetch, getCitizenToken } from '@/api/bharosa'
 import { beginRecording, canListen, listenOnce, playSarvam, speakAnswer, stopSpokenAudio, transcribeRecording, voiceIsPlaying } from './guideVoice'
 import { Btn, Notice, errText } from './ui'
@@ -121,6 +121,127 @@ const STARTERS: Record<GuideLang, string[]> = {
 function storedLang(): GuideLang {
   const raw = localStorage.getItem(LANG_KEY)
   return raw === 'en' || raw === 'hi' || raw === 'te' ? raw : 'te'
+}
+
+/** Lightweight chat formatting: paragraphs, lists, bold, markdown links. */
+function GuideBubbleBody({ body, role }: { body: string; role: 'user' | 'assistant' }) {
+  if (role === 'user') {
+    return <>{body}</>
+  }
+
+  const blocks = splitAssistantBlocks(body)
+  return (
+    <div className="space-y-2 leading-relaxed">
+      {blocks.map((block, i) => {
+        if (block.type === 'p') {
+          return (
+            <p key={i} className="whitespace-pre-wrap">
+              {renderInline(block.text)}
+            </p>
+          )
+        }
+        const Tag = block.type
+        return (
+          <Tag key={i} className={`pl-4 space-y-1 ${block.type === 'ol' ? 'list-decimal' : 'list-disc'}`}>
+            {block.items.map((item, j) => (
+              <li key={j}>{renderInline(item)}</li>
+            ))}
+          </Tag>
+        )
+      })}
+    </div>
+  )
+}
+
+type AssistantBlock =
+  | { type: 'p'; text: string }
+  | { type: 'ol' | 'ul'; items: string[] }
+
+function splitAssistantBlocks(body: string): AssistantBlock[] {
+  // Recover lists when the model put "1. … 2. …" in one paragraph
+  const normalized = body
+    .replace(/\r\n/g, '\n')
+    .replace(/(?<!\n)(?<!^)[ \t]+(\d{1,2})[.)]\s+/g, '\n$1. ')
+    .replace(/[ \t]+([-*•])\s+/g, '\n$1 ')
+
+  const lines = normalized.split('\n')
+  const blocks: AssistantBlock[] = []
+  let para: string[] = []
+  let list: { type: 'ol' | 'ul'; items: string[] } | null = null
+
+  const flushPara = () => {
+    const text = para.join('\n').trim()
+    if (text) blocks.push({ type: 'p', text })
+    para = []
+  }
+  const flushList = () => {
+    if (list && list.items.length) blocks.push(list)
+    list = null
+  }
+
+  for (const raw of lines) {
+    const line = raw.trimEnd()
+    const numbered = line.match(/^\s*(\d+)[.)]\s+(.+)$/)
+    const bulleted = line.match(/^\s*[-*•]\s+(.+)$/)
+    if (numbered) {
+      flushPara()
+      if (!list || list.type !== 'ol') {
+        flushList()
+        list = { type: 'ol', items: [] }
+      }
+      list.items.push(numbered[2]!)
+      continue
+    }
+    if (bulleted) {
+      flushPara()
+      if (!list || list.type !== 'ul') {
+        flushList()
+        list = { type: 'ul', items: [] }
+      }
+      list.items.push(bulleted[1]!)
+      continue
+    }
+    if (!line.trim()) {
+      flushPara()
+      flushList()
+      continue
+    }
+    flushList()
+    para.push(line.trim())
+  }
+  flushPara()
+  flushList()
+  return blocks.length ? blocks : [{ type: 'p', text: body }]
+}
+
+function renderInline(text: string): ReactNode[] {
+  const nodes: ReactNode[] = []
+  const re = /(\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s<]+))/g
+  let last = 0
+  let match: RegExpExecArray | null
+  let key = 0
+  while ((match = re.exec(text))) {
+    if (match.index > last) nodes.push(text.slice(last, match.index))
+    if (match[2]) {
+      nodes.push(<strong key={key++}>{match[2]}</strong>)
+    } else if (match[3] && match[4]) {
+      nodes.push(
+        <a key={key++} href={match[4]} target="_blank" rel="noreferrer" className="underline break-all">
+          {match[3]}
+        </a>,
+      )
+    } else if (match[5]) {
+      const url = match[5].replace(/[.,;:!?)\]}>]+$/, '')
+      nodes.push(
+        <a key={key++} href={url} target="_blank" rel="noreferrer" className="underline break-all">
+          {url.replace(/^https?:\/\//, '')}
+        </a>,
+      )
+    }
+    last = match.index + match[0].length
+  }
+  if (last < text.length) nodes.push(text.slice(last))
+  return nodes
 }
 
 export function GuidePage() {
@@ -380,8 +501,12 @@ export function GuidePage() {
           </div>
         )}
         {messages.map((m) => (
-          <div key={m.id} className={`max-w-[90%] whitespace-pre-wrap text-sm rounded-lg px-3 py-2 ${m.role === 'user' ? 'ml-auto' : ''}`} style={{ background: m.role === 'user' ? 'var(--primary)' : 'var(--canvas-bg)', color: m.role === 'user' ? '#fff' : 'inherit' }}>
-            {m.body}
+          <div
+            key={m.id}
+            className={`max-w-[90%] text-sm rounded-lg px-3 py-2 ${m.role === 'user' ? 'ml-auto whitespace-pre-wrap' : ''}`}
+            style={{ background: m.role === 'user' ? 'var(--primary)' : 'var(--canvas-bg)', color: m.role === 'user' ? '#fff' : 'inherit' }}
+          >
+            <GuideBubbleBody body={m.body} role={m.role} />
           </div>
         ))}
         {caseChoices.length > 0 && (
